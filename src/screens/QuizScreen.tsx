@@ -407,6 +407,7 @@ export const QuizScreen = () => {
                   expectedWord={word}
                   caseSensitive={passage.caseSensitive}
                   exactPunctuation={passage.exactPunctuation}
+                  diacriticSensitive={passage.diacriticSensitive}
                   onSpace={() => handleSpace(currentPosition)}
                   width={getWordWidth(word)}
                 />

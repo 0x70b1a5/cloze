@@ -5,6 +5,7 @@ interface BlankInputProps {
   expectedWord: string;
   caseSensitive: boolean;
   exactPunctuation: boolean;
+  diacriticSensitive: boolean;
   onSpace: () => void;
   width: number;
 }
@@ -15,7 +16,7 @@ export interface BlankInputRef {
   getResult: () => { value: string; isCorrect: boolean };
 }
 
-const normalizeWord = (word: string, caseSensitive: boolean, exactPunctuation: boolean): string => {
+const normalizeWord = (word: string, caseSensitive: boolean, exactPunctuation: boolean, diacriticSensitive: boolean): string => {
   let normalized = word;
   if (!exactPunctuation) {
     normalized = normalized.replace(/[^\w\s]/g, '');
@@ -23,18 +24,24 @@ const normalizeWord = (word: string, caseSensitive: boolean, exactPunctuation: b
   if (!caseSensitive) {
     normalized = normalized.toLowerCase();
   }
+  if (!diacriticSensitive) {
+    // Decompose characters with diacritics (é → e + combining accent)
+    // Then remove combining diacritical marks
+    // This preserves ligatures like æ and œ which don't decompose
+    normalized = normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
   return normalized.trim();
 };
 
 export const BlankInput = forwardRef<BlankInputRef, BlankInputProps>(
-  ({ expectedWord, caseSensitive, exactPunctuation, onSpace, width }, ref) => {
+  ({ expectedWord, caseSensitive, exactPunctuation, diacriticSensitive, onSpace, width }, ref) => {
     const { colors } = useTheme();
     const inputRef = useRef<HTMLInputElement>(null);
     const [value, setValue] = useState('');
 
     const checkAnswer = (input: string): boolean => {
-      const normalizedInput = normalizeWord(input, caseSensitive, exactPunctuation);
-      const normalizedExpected = normalizeWord(expectedWord, caseSensitive, exactPunctuation);
+      const normalizedInput = normalizeWord(input, caseSensitive, exactPunctuation, diacriticSensitive);
+      const normalizedExpected = normalizeWord(expectedWord, caseSensitive, exactPunctuation, diacriticSensitive);
       return normalizedInput === normalizedExpected;
     };
 

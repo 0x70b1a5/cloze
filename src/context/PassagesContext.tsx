@@ -5,7 +5,7 @@ import { savePassages, loadPassages } from '../storage';
 
 interface PassagesContextType {
   passages: Passage[];
-  addPassage: (title: string, text: string, caseSensitive: boolean, exactPunctuation: boolean) => string;
+  addPassage: (title: string, text: string, caseSensitive: boolean, exactPunctuation: boolean, diacriticSensitive: boolean) => string;
   updatePassage: (id: string, updates: Partial<Omit<Passage, 'id'>>) => void;
   deletePassage: (id: string) => void;
   getPassage: (id: string) => Passage | undefined;
@@ -33,7 +33,7 @@ export const PassagesProvider = ({ children }: { children: ReactNode }) => {
 
   const getWords = (text: string) => text.split(/\s+/).filter(w => w.length > 0);
 
-  const addPassage = (title: string, text: string, caseSensitive: boolean, exactPunctuation: boolean): string => {
+  const addPassage = (title: string, text: string, caseSensitive: boolean, exactPunctuation: boolean, diacriticSensitive: boolean): string => {
     const id = uuidv4();
     const wordCount = getWords(text).length;
     const newPassage: Passage = {
@@ -42,6 +42,7 @@ export const PassagesProvider = ({ children }: { children: ReactNode }) => {
       text,
       caseSensitive,
       exactPunctuation,
+      diacriticSensitive,
       kelvin: wordCount, // Start at full kelvin (all blanks)
     };
     persist([...passages, newPassage]);

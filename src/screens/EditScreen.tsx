@@ -16,6 +16,7 @@ export const EditScreen = () => {
   const [text, setText] = useState(existingPassage?.text ?? '');
   const [caseSensitive, setCaseSensitive] = useState(existingPassage?.caseSensitive ?? false);
   const [exactPunctuation, setExactPunctuation] = useState(existingPassage?.exactPunctuation ?? false);
+  const [diacriticSensitive, setDiacriticSensitive] = useState(existingPassage?.diacriticSensitive ?? false);
 
   const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
   const canSave = title.trim().length > 0 && wordCount > 0;
@@ -35,9 +36,9 @@ export const EditScreen = () => {
 
   const doSave = () => {
     if (isEditing && passageId) {
-      updatePassage(passageId, { title, text, caseSensitive, exactPunctuation });
+      updatePassage(passageId, { title, text, caseSensitive, exactPunctuation, diacriticSensitive });
     } else {
-      addPassage(title, text, caseSensitive, exactPunctuation);
+      addPassage(title, text, caseSensitive, exactPunctuation, diacriticSensitive);
     }
     navigate('/');
   };
@@ -203,6 +204,21 @@ export const EditScreen = () => {
             type="checkbox"
             checked={exactPunctuation}
             onChange={(e) => setExactPunctuation(e.target.checked)}
+            style={styles.checkbox}
+          />
+        </div>
+
+        <div style={styles.optionRow}>
+          <div>
+            <div style={styles.optionLabel}>Diacritic Sensitive</div>
+            <div style={styles.optionDescription}>
+              Distinguish é, è, ê from e (preserves æ, œ)
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={diacriticSensitive}
+            onChange={(e) => setDiacriticSensitive(e.target.checked)}
             style={styles.checkbox}
           />
         </div>

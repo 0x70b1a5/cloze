@@ -4,6 +4,7 @@ export interface Passage {
   text: string;
   caseSensitive: boolean;
   exactPunctuation: boolean;
+  diacriticSensitive: boolean;
   kelvin: number; // number of blanks remaining (starts at word count)
 }
 
