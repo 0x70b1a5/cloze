@@ -13,6 +13,8 @@ interface PassagesContextType {
   incrementKelvin: (passageId: string) => void;
   setKelvin: (passageId: string, kelvin: number) => void;
   isComplete: (passage: Passage) => boolean;
+  exportPassages: () => void;
+  importPassages: (file: File) => Promise<void>;
 }
 
 const PassagesContext = createContext<PassagesContextType | undefined>(undefined);
@@ -40,7 +42,7 @@ export const PassagesProvider = ({ children }: { children: ReactNode }) => {
       text,
       caseSensitive,
       exactPunctuation,
-      kelvin: wordCount,
+      kelvin: wordCount, // Start at full kelvin (all blanks)
     };
     persist([...passages, newPassage]);
     return id;
@@ -49,7 +51,7 @@ export const PassagesProvider = ({ children }: { children: ReactNode }) => {
   const updatePassage = (id: string, updates: Partial<Omit<Passage, 'id'>>) => {
     const newPassages = passages.map(p => {
       if (p.id === id) {
-        // If text changed, reset kelvin to new word count
+        // If text changed, reset kelvin to new word count (all blanks)
         if (updates.text !== undefined && updates.text !== p.text) {
           const newWordCount = getWords(updates.text).length;
           return { ...p, ...updates, kelvin: newWordCount };
@@ -106,6 +108,48 @@ export const PassagesProvider = ({ children }: { children: ReactNode }) => {
     return passage.kelvin === 0;
   };
 
+  const exportPassages = () => {
+    const dataStr = JSON.stringify(passages, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cloze-passages-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const importPassages = async (file: File): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const content = e.target?.result as string;
+          const importedPassages = JSON.parse(content) as Passage[];
+
+          // Validate the imported data
+          if (!Array.isArray(importedPassages)) {
+            throw new Error('Invalid file format: expected an array of passages');
+          }
+
+          // Merge with existing passages, avoiding duplicates by ID
+          const existingIds = new Set(passages.map(p => p.id));
+          const newPassages = importedPassages.filter(p => !existingIds.has(p.id));
+          const merged = [...passages, ...newPassages];
+
+          persist(merged);
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(file);
+    });
+  };
+
   return (
     <PassagesContext.Provider
       value={{
@@ -118,6 +162,8 @@ export const PassagesProvider = ({ children }: { children: ReactNode }) => {
         incrementKelvin,
         setKelvin,
         isComplete,
+        exportPassages,
+        importPassages,
       }}>
       {children}
     </PassagesContext.Provider>

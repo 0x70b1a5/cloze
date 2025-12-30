@@ -1,40 +1,30 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  Modal,
-  TextInput,
-} from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types';
+import { useNavigate, useParams } from 'react-router-dom';
 import { usePassages } from '../context/PassagesContext';
 import { useTheme } from '../context/ThemeContext';
 import { BlankInput, BlankInputRef } from '../components/BlankInput';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Quiz'>;
-
-// Generate random blank indices for a given kelvin
 const generateBlankIndices = (wordCount: number, kelvin: number): number[] => {
+  // At full kelvin, show 1 blank so user can test
+  // Otherwise: higher K = fewer blanks (easier)
+  const numBlanks = kelvin === wordCount ? 1 : wordCount - kelvin;
   const allIndices = Array.from({ length: wordCount }, (_, i) => i);
   const shuffled = [...allIndices].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, kelvin).sort((a, b) => a - b);
+  return shuffled.slice(0, numBlanks).sort((a, b) => a - b);
 };
 
-export const QuizScreen = ({ navigation, route }: Props) => {
-  const { passageId } = route.params;
+export const QuizScreen = () => {
+  const { passageId } = useParams<{ passageId: string }>();
   const { getPassage, isComplete, setKelvin, deletePassage } = usePassages();
   const { colors, isDark, toggleTheme } = useTheme();
+  const navigate = useNavigate();
   const [menuVisible, setMenuVisible] = useState(false);
   const [testAtKVisible, setTestAtKVisible] = useState(false);
   const [testAtKValue, setTestAtKValue] = useState('');
   const [blankIndices, setBlankIndices] = useState<number[]>([]);
-  const [quizKey, setQuizKey] = useState(0); // Used to force re-render after submit
+  const [quizKey, setQuizKey] = useState(0);
 
-  const passage = getPassage(passageId);
+  const passage = passageId ? getPassage(passageId) : undefined;
   const inputRefs = useRef<Map<number, BlankInputRef>>(new Map());
 
   const words = useMemo(() =>
@@ -45,7 +35,6 @@ export const QuizScreen = ({ navigation, route }: Props) => {
   const kelvin = passage?.kelvin ?? 0;
   const complete = passage ? isComplete(passage) : false;
 
-  // Generate new random blanks when kelvin changes or quiz is submitted
   useEffect(() => {
     if (words.length > 0 && kelvin > 0) {
       setBlankIndices(generateBlankIndices(words.length, kelvin));
@@ -56,135 +45,135 @@ export const QuizScreen = ({ navigation, route }: Props) => {
 
   useEffect(() => {
     if (!passage) {
-      navigation.goBack();
+      navigate('/');
     }
-  }, [passage, navigation]);
+  }, [passage, navigate]);
 
-  if (!passage) return null;
+  if (!passage || !passageId) return null;
 
-  const styles = StyleSheet.create({
+  const styles = {
     container: {
-      flex: 1,
+      minHeight: '100vh',
       backgroundColor: colors.background,
     },
     header: {
-      flexDirection: 'row',
+      display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      paddingTop: 48,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      padding: '12px 16px',
+      paddingTop: '16px',
+      borderBottom: `1px solid ${colors.border}`,
       backgroundColor: colors.surface,
     },
     backButton: {
-      padding: 8,
-      marginRight: 8,
-    },
-    backButtonText: {
-      fontSize: 24,
+      background: 'none',
+      border: 'none',
+      fontSize: '24px',
       color: colors.text,
+      cursor: 'pointer',
+      padding: '8px',
+      marginRight: '8px',
     },
     headerLeft: {
       flex: 1,
     },
     title: {
       fontFamily: 'serif',
-      fontSize: 18,
-      fontWeight: '600',
+      fontSize: '18px',
+      fontWeight: 600,
       color: colors.text,
+      margin: 0,
     },
     kelvinText: {
       fontFamily: 'serif',
-      fontSize: 14,
+      fontSize: '14px',
       color: complete ? colors.correct : colors.textSecondary,
-      marginTop: 2,
+      marginTop: '2px',
     },
     menuButton: {
-      padding: 8,
-    },
-    menuButtonText: {
-      fontSize: 24,
+      background: 'none',
+      border: 'none',
+      fontSize: '24px',
       color: colors.text,
-    },
-    scroll: {
-      flex: 1,
+      cursor: 'pointer',
+      padding: '8px',
     },
     content: {
-      padding: 20,
-      paddingBottom: 100,
+      padding: '20px',
+      paddingBottom: '100px',
+      maxWidth: '800px',
+      margin: '0 auto',
     },
     textContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      display: 'flex',
+      flexWrap: 'wrap' as const,
       alignItems: 'baseline',
     },
     word: {
       fontFamily: 'serif',
-      fontSize: 18,
-      lineHeight: 36,
+      fontSize: '18px',
+      lineHeight: '36px',
       color: colors.text,
-      marginHorizontal: 2,
+      margin: '0 2px',
     },
     completeMessage: {
       fontFamily: 'serif',
-      fontSize: 20,
-      fontWeight: '600',
+      fontSize: '20px',
+      fontWeight: 600,
       color: colors.correct,
-      textAlign: 'center',
-      marginTop: 32,
+      textAlign: 'center' as const,
+      marginTop: '32px',
     },
     submitButton: {
-      position: 'absolute',
-      bottom: 32,
-      left: 32,
-      right: 32,
+      position: 'fixed' as const,
+      bottom: '32px',
+      left: '32px',
+      right: '32px',
+      maxWidth: '600px',
+      margin: '0 auto',
       backgroundColor: colors.primary,
-      borderRadius: 12,
-      padding: 16,
-      alignItems: 'center',
+      borderRadius: '12px',
+      padding: '16px',
+      border: 'none',
+      cursor: 'pointer',
     },
     submitButtonText: {
       fontFamily: 'serif',
-      fontSize: 18,
-      fontWeight: '600',
+      fontSize: '18px',
+      fontWeight: 600,
       color: colors.surface,
     },
     menu: {
-      position: 'absolute',
-      top: 50,
-      right: 16,
+      position: 'absolute' as const,
+      top: '50px',
+      right: '16px',
       backgroundColor: colors.surface,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: colors.border,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.15,
-      shadowRadius: 8,
-      elevation: 5,
+      borderRadius: '8px',
+      border: `1px solid ${colors.border}`,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
       zIndex: 100,
+      minWidth: '180px',
     },
     menuItem: {
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      padding: '12px 16px',
+      borderBottom: `1px solid ${colors.border}`,
+      cursor: 'pointer',
+      backgroundColor: colors.surface,
     },
     menuItemLast: {
-      borderBottomWidth: 0,
+      borderBottom: 'none',
     },
     menuItemText: {
       fontFamily: 'serif',
-      fontSize: 16,
+      fontSize: '16px',
       color: colors.text,
+      margin: 0,
     },
     menuItemTextDanger: {
       color: colors.incorrect,
     },
     overlay: {
-      position: 'absolute',
+      position: 'fixed' as const,
       top: 0,
       left: 0,
       right: 0,
@@ -192,78 +181,78 @@ export const QuizScreen = ({ navigation, route }: Props) => {
       zIndex: 50,
     },
     modalOverlay: {
-      flex: 1,
+      position: 'fixed' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
+      zIndex: 1000,
     },
     modalContent: {
       backgroundColor: colors.surface,
-      borderRadius: 12,
-      padding: 24,
-      width: 280,
-      borderWidth: 1,
-      borderColor: colors.border,
+      borderRadius: '12px',
+      padding: '24px',
+      width: '280px',
+      border: `1px solid ${colors.border}`,
     },
     modalTitle: {
       fontFamily: 'serif',
-      fontSize: 18,
-      fontWeight: '600',
+      fontSize: '18px',
+      fontWeight: 600,
       color: colors.text,
-      marginBottom: 8,
+      marginBottom: '8px',
     },
     modalSubtitle: {
       fontFamily: 'serif',
-      fontSize: 14,
+      fontSize: '14px',
       color: colors.textSecondary,
-      marginBottom: 16,
+      marginBottom: '16px',
     },
     modalInput: {
       fontFamily: 'serif',
-      fontSize: 18,
+      fontSize: '18px',
       backgroundColor: colors.inputBackground,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 8,
-      padding: 12,
+      border: `1px solid ${colors.border}`,
+      borderRadius: '8px',
+      padding: '12px',
       color: colors.text,
-      textAlign: 'center',
-      marginBottom: 16,
+      textAlign: 'center' as const,
+      marginBottom: '16px',
+      width: '100%',
+      boxSizing: 'border-box' as const,
     },
     modalButtons: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      display: 'flex',
+      gap: '8px',
     },
     modalButton: {
       flex: 1,
-      padding: 12,
-      borderRadius: 8,
-      alignItems: 'center',
+      padding: '12px',
+      borderRadius: '8px',
+      border: 'none',
+      cursor: 'pointer',
+      fontFamily: 'serif',
+      fontSize: '16px',
+      fontWeight: 600,
     },
     modalButtonCancel: {
       backgroundColor: colors.inputBackground,
-      marginRight: 8,
+      color: colors.text,
     },
     modalButtonConfirm: {
       backgroundColor: colors.primary,
-      marginLeft: 8,
-    },
-    modalButtonText: {
-      fontFamily: 'serif',
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.text,
-    },
-    modalButtonTextConfirm: {
       color: colors.surface,
     },
-  });
+  };
 
   const handleSubmit = useCallback(() => {
     let correct = 0;
     let incorrect = 0;
 
-    // Grade all blanks
     blankIndices.forEach(wordIndex => {
       const inputRef = inputRefs.current.get(wordIndex);
       if (inputRef) {
@@ -276,32 +265,21 @@ export const QuizScreen = ({ navigation, route }: Props) => {
       }
     });
 
-    // Calculate new kelvin: current - correct + incorrect
     const delta = correct - incorrect;
     const newKelvin = Math.max(0, Math.min(words.length, kelvin - delta));
 
-    // Show results
     const message = delta > 0
-      ? `+${correct} correct, -${incorrect} wrong\nNet: ${delta > 0 ? '-' : '+'}${Math.abs(delta)}K`
+      ? `+${correct} correct, -${incorrect} wrong\nNet: -${Math.abs(delta)}K`
       : delta < 0
         ? `+${correct} correct, -${incorrect} wrong\nNet: +${Math.abs(delta)}K`
         : `+${correct} correct, -${incorrect} wrong\nNo change`;
 
-    Alert.alert(
-      newKelvin === 0 ? 'Memorized!' : `${newKelvin}K`,
-      message,
-      [{
-        text: 'Continue',
-        onPress: () => {
-          setKelvin(passageId, newKelvin);
-          setQuizKey(k => k + 1); // Force new blanks
-        }
-      }]
-    );
+    window.alert(`${newKelvin === 0 ? 'Memorized!' : `${newKelvin}K`}\n\n${message}`);
+    setKelvin(passageId, newKelvin);
+    setQuizKey(k => k + 1);
   }, [blankIndices, kelvin, words.length, passageId, setKelvin]);
 
   const handleSpace = useCallback((currentBlankPosition: number) => {
-    // Focus the next blank input
     if (currentBlankPosition < blankIndices.length - 1) {
       const nextBlankWordIndex = blankIndices[currentBlankPosition + 1];
       const nextInput = inputRefs.current.get(nextBlankWordIndex);
@@ -313,26 +291,15 @@ export const QuizScreen = ({ navigation, route }: Props) => {
 
   const handleEdit = () => {
     setMenuVisible(false);
-    navigation.navigate('Edit', { passageId });
+    navigate(`/edit/${passageId}`);
   };
 
   const handleDelete = () => {
     setMenuVisible(false);
-    Alert.alert(
-      'Delete Passage',
-      'Are you sure you want to delete this passage? This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            deletePassage(passageId);
-            navigation.goBack();
-          },
-        },
-      ]
-    );
+    if (window.confirm('Are you sure you want to delete this passage? This cannot be undone.')) {
+      deletePassage(passageId);
+      navigate('/');
+    }
   };
 
   const handleToggleTheme = () => {
@@ -342,20 +309,10 @@ export const QuizScreen = ({ navigation, route }: Props) => {
 
   const handleResetProgress = () => {
     setMenuVisible(false);
-    Alert.alert(
-      'Reset Progress',
-      'This will reset to full Kelvin (all words as blanks). Continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          onPress: () => {
-            setKelvin(passageId, words.length);
-            setQuizKey(k => k + 1);
-          },
-        },
-      ]
-    );
+    if (window.confirm('This will reset to full Kelvin (all words as blanks). Continue?')) {
+      setKelvin(passageId, words.length);
+      setQuizKey(k => k + 1);
+    }
   };
 
   const handleTestAtK = () => {
@@ -368,7 +325,7 @@ export const QuizScreen = ({ navigation, route }: Props) => {
     const targetK = parseInt(testAtKValue, 10);
 
     if (isNaN(targetK) || targetK < 0 || targetK > words.length) {
-      Alert.alert('Invalid', `Please enter a number between 0 and ${words.length}`);
+      window.alert(`Invalid! Please enter a number between 0 and ${words.length}`);
       return;
     }
 
@@ -378,67 +335,58 @@ export const QuizScreen = ({ navigation, route }: Props) => {
   };
 
   const getWordWidth = (word: string) => {
-    // Rough estimate: 10px per character
-    return Math.max(word.length * 10, 40);
+    // Use full ems for nice padding
+    return Math.max(word.length, 3); // Return in em units, min 3em
   };
 
   let blankPosition = 0;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
-        </TouchableOpacity>
-        <View style={styles.headerLeft}>
-          <Text style={styles.title}>{passage.title}</Text>
-          <Text style={styles.kelvinText}>
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <button style={styles.backButton} onClick={() => navigate('/')}>
+          &lt;
+        </button>
+        <div style={styles.headerLeft}>
+          <h2 style={styles.title}>{passage.title}</h2>
+          <div style={styles.kelvinText}>
             {complete ? 'Memorized!' : `${kelvin}K remaining`}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => setMenuVisible(!menuVisible)}>
-          <Text style={styles.menuButtonText}>☰</Text>
-        </TouchableOpacity>
-      </View>
+          </div>
+        </div>
+        <button style={styles.menuButton} onClick={() => setMenuVisible(!menuVisible)}>
+          ☰
+        </button>
+      </div>
 
       {menuVisible && (
         <>
-          <TouchableOpacity
-            style={styles.overlay}
-            onPress={() => setMenuVisible(false)}
-          />
-          <View style={styles.menu}>
-            <TouchableOpacity style={styles.menuItem} onPress={handleToggleTheme}>
-              <Text style={styles.menuItemText}>
+          <div style={styles.overlay} onClick={() => setMenuVisible(false)} />
+          <div style={styles.menu}>
+            <div style={styles.menuItem} onClick={handleToggleTheme}>
+              <p style={styles.menuItemText}>
                 {isDark ? 'Light Mode' : 'Dark Mode'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem} onPress={handleEdit}>
-              <Text style={styles.menuItemText}>Edit Passage</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem} onPress={handleTestAtK}>
-              <Text style={styles.menuItemText}>Test at K...</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem} onPress={handleResetProgress}>
-              <Text style={styles.menuItemText}>Reset Progress</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.menuItem, styles.menuItemLast]}
-              onPress={handleDelete}>
-              <Text style={[styles.menuItemText, styles.menuItemTextDanger]}>
+              </p>
+            </div>
+            <div style={styles.menuItem} onClick={handleEdit}>
+              <p style={styles.menuItemText}>Edit Passage</p>
+            </div>
+            <div style={styles.menuItem} onClick={handleTestAtK}>
+              <p style={styles.menuItemText}>Test at K...</p>
+            </div>
+            <div style={styles.menuItem} onClick={handleResetProgress}>
+              <p style={styles.menuItemText}>Reset Progress</p>
+            </div>
+            <div style={{ ...styles.menuItem, ...styles.menuItemLast }} onClick={handleDelete}>
+              <p style={{ ...styles.menuItemText, ...styles.menuItemTextDanger }}>
                 Delete Passage
-              </Text>
-            </TouchableOpacity>
-          </View>
+              </p>
+            </div>
+          </div>
         </>
       )}
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <View style={styles.textContainer}>
+      <div style={styles.content}>
+        <div style={styles.textContainer}>
           {words.map((word, index) => {
             const isBlank = blankIndices.includes(index);
 
@@ -466,65 +414,57 @@ export const QuizScreen = ({ navigation, route }: Props) => {
             }
 
             return (
-              <Text key={index} style={styles.word}>
+              <span key={index} style={styles.word}>
                 {word}
-              </Text>
+              </span>
             );
           })}
-        </View>
+        </div>
 
         {complete && (
-          <Text style={styles.completeMessage}>
+          <p style={styles.completeMessage}>
             Congratulations! You've memorized this passage.
-          </Text>
+          </p>
         )}
-      </ScrollView>
+      </div>
 
       {!complete && blankIndices.length > 0 && (
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={handleSubmit}
-          activeOpacity={0.8}>
-          <Text style={styles.submitButtonText}>Submit</Text>
-        </TouchableOpacity>
+        <button style={styles.submitButton} onClick={handleSubmit}>
+          <div style={styles.submitButtonText}>Submit</div>
+        </button>
       )}
 
-      <Modal
-        visible={testAtKVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setTestAtKVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Test at K</Text>
-            <Text style={styles.modalSubtitle}>
+      {testAtKVisible && (
+        <div style={styles.modalOverlay} onClick={() => setTestAtKVisible(false)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalTitle}>Test at K</div>
+            <div style={styles.modalSubtitle}>
               Enter target Kelvin (0-{words.length})
-            </Text>
-            <TextInput
+            </div>
+            <input
               style={styles.modalInput}
+              type="number"
               value={testAtKValue}
-              onChangeText={setTestAtKValue}
-              keyboardType="number-pad"
-              selectTextOnFocus
+              onChange={(e) => setTestAtKValue(e.target.value)}
               autoFocus
             />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonCancel]}
-                onPress={() => setTestAtKVisible(false)}>
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonConfirm]}
-                onPress={handleTestAtKSubmit}>
-                <Text style={[styles.modalButtonText, styles.modalButtonTextConfirm]}>
-                  Start
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </View>
+            <div style={styles.modalButtons}>
+              <button
+                style={{ ...styles.modalButton, ...styles.modalButtonCancel }}
+                onClick={() => setTestAtKVisible(false)}
+              >
+                Cancel
+              </button>
+              <button
+                style={{ ...styles.modalButton, ...styles.modalButtonConfirm }}
+                onClick={handleTestAtKSubmit}
+              >
+                Start
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };

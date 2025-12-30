@@ -1,27 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Switch,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types';
+import { useNavigate, useParams } from 'react-router-dom';
 import { usePassages } from '../context/PassagesContext';
 import { useTheme } from '../context/ThemeContext';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Edit'>;
-
-export const EditScreen = ({ navigation, route }: Props) => {
-  const { passageId } = route.params;
+export const EditScreen = () => {
+  const { passageId } = useParams<{ passageId?: string }>();
   const { getPassage, addPassage, updatePassage } = usePassages();
   const { colors } = useTheme();
+  const navigate = useNavigate();
 
   const existingPassage = passageId ? getPassage(passageId) : undefined;
   const isEditing = !!existingPassage;
@@ -31,95 +17,6 @@ export const EditScreen = ({ navigation, route }: Props) => {
   const [caseSensitive, setCaseSensitive] = useState(existingPassage?.caseSensitive ?? false);
   const [exactPunctuation, setExactPunctuation] = useState(existingPassage?.exactPunctuation ?? false);
 
-  useEffect(() => {
-    navigation.setOptions({
-      title: isEditing ? 'Edit Passage' : 'New Passage',
-    });
-  }, [navigation, isEditing]);
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    scroll: {
-      flex: 1,
-    },
-    content: {
-      padding: 16,
-    },
-    label: {
-      fontFamily: 'serif',
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: 8,
-      marginTop: 16,
-    },
-    input: {
-      fontFamily: 'serif',
-      fontSize: 16,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 8,
-      padding: 12,
-      color: colors.text,
-    },
-    textArea: {
-      minHeight: 200,
-      textAlignVertical: 'top',
-    },
-    optionRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    optionLabel: {
-      fontFamily: 'serif',
-      fontSize: 16,
-      color: colors.text,
-    },
-    optionDescription: {
-      fontFamily: 'serif',
-      fontSize: 14,
-      color: colors.textSecondary,
-      marginTop: 2,
-    },
-    saveButton: {
-      backgroundColor: colors.primary,
-      borderRadius: 12,
-      padding: 16,
-      alignItems: 'center',
-      marginTop: 32,
-      marginBottom: 32,
-    },
-    saveButtonDisabled: {
-      opacity: 0.5,
-    },
-    saveButtonText: {
-      fontFamily: 'serif',
-      fontSize: 18,
-      fontWeight: '600',
-      color: colors.surface,
-    },
-    wordCount: {
-      fontFamily: 'serif',
-      fontSize: 14,
-      color: colors.textSecondary,
-      marginTop: 8,
-    },
-    warning: {
-      fontFamily: 'serif',
-      fontSize: 14,
-      color: colors.incorrect,
-      marginTop: 8,
-    },
-  });
-
   const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
   const canSave = title.trim().length > 0 && wordCount > 0;
   const textChanged = isEditing && text !== existingPassage?.text;
@@ -128,17 +25,9 @@ export const EditScreen = ({ navigation, route }: Props) => {
     if (!canSave) return;
 
     if (textChanged) {
-      Alert.alert(
-        'Reset Progress?',
-        'Changing the passage text will reset your memorization progress. Continue?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Continue',
-            onPress: doSave,
-          },
-        ]
-      );
+      if (window.confirm('Changing the passage text will reset your memorization progress. Continue?')) {
+        doSave();
+      }
     } else {
       doSave();
     }
@@ -150,81 +39,184 @@ export const EditScreen = ({ navigation, route }: Props) => {
     } else {
       addPassage(title, text, caseSensitive, exactPunctuation);
     }
-    navigation.goBack();
+    navigate('/');
+  };
+
+  const styles = {
+    container: {
+      minHeight: '100vh',
+      backgroundColor: colors.background,
+    },
+    header: {
+      padding: '16px',
+      borderBottom: `1px solid ${colors.border}`,
+      backgroundColor: colors.surface,
+    },
+    headerTitle: {
+      fontFamily: 'serif',
+      fontSize: '24px',
+      fontWeight: 600,
+      color: colors.text,
+      margin: 0,
+    },
+    content: {
+      padding: '16px',
+      maxWidth: '800px',
+      margin: '0 auto',
+    },
+    label: {
+      fontFamily: 'serif',
+      fontSize: '16px',
+      fontWeight: 600,
+      color: colors.text,
+      marginBottom: '8px',
+      marginTop: '16px',
+      display: 'block',
+    },
+    input: {
+      fontFamily: 'serif',
+      fontSize: '16px',
+      backgroundColor: colors.surface,
+      border: `1px solid ${colors.border}`,
+      borderRadius: '8px',
+      padding: '12px',
+      color: colors.text,
+      width: '100%',
+      boxSizing: 'border-box' as const,
+    },
+    textArea: {
+      minHeight: '200px',
+      resize: 'vertical' as const,
+    },
+    wordCount: {
+      fontFamily: 'serif',
+      fontSize: '14px',
+      color: colors.textSecondary,
+      marginTop: '8px',
+    },
+    warning: {
+      fontFamily: 'serif',
+      fontSize: '14px',
+      color: colors.incorrect,
+      marginTop: '8px',
+    },
+    optionRow: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingTop: '12px',
+      paddingBottom: '12px',
+      borderBottom: `1px solid ${colors.border}`,
+    },
+    optionLabel: {
+      fontFamily: 'serif',
+      fontSize: '16px',
+      color: colors.text,
+    },
+    optionDescription: {
+      fontFamily: 'serif',
+      fontSize: '14px',
+      color: colors.textSecondary,
+      marginTop: '2px',
+    },
+    saveButton: {
+      backgroundColor: colors.primary,
+      borderRadius: '12px',
+      padding: '16px',
+      border: 'none',
+      cursor: canSave ? 'pointer' : 'not-allowed',
+      opacity: canSave ? 1 : 0.5,
+      marginTop: '32px',
+      marginBottom: '32px',
+      width: '100%',
+    },
+    saveButtonText: {
+      fontFamily: 'serif',
+      fontSize: '18px',
+      fontWeight: 600,
+      color: colors.surface,
+    },
+    checkbox: {
+      width: '44px',
+      height: '24px',
+      cursor: 'pointer',
+    },
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <Text style={styles.label}>Title</Text>
-        <TextInput
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h1 style={styles.headerTitle}>{isEditing ? 'Edit Passage' : 'New Passage'}</h1>
+      </div>
+
+      <div style={styles.content}>
+        <label style={styles.label}>Title</label>
+        <input
           style={styles.input}
+          type="text"
           value={title}
-          onChangeText={setTitle}
+          onChange={(e) => setTitle(e.target.value)}
           placeholder="Enter a title..."
-          placeholderTextColor={colors.textSecondary}
         />
 
-        <Text style={styles.label}>Passage</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
+        <label style={styles.label}>Passage</label>
+        <textarea
+          style={{ ...styles.input, ...styles.textArea }}
           value={text}
-          onChangeText={setText}
+          onChange={(e) => setText(e.target.value)}
           placeholder="Enter the text you want to memorize..."
-          placeholderTextColor={colors.textSecondary}
-          multiline
         />
-        <Text style={styles.wordCount}>
+        <div style={styles.wordCount}>
           {wordCount} word{wordCount !== 1 ? 's' : ''} = {wordCount}K
-        </Text>
+        </div>
         {textChanged && (
-          <Text style={styles.warning}>
+          <div style={styles.warning}>
             Changing text will reset progress
-          </Text>
+          </div>
         )}
 
-        <Text style={[styles.label, { marginTop: 24 }]}>Options</Text>
+        <label style={{ ...styles.label, marginTop: '24px' }}>Options</label>
 
-        <View style={styles.optionRow}>
-          <View>
-            <Text style={styles.optionLabel}>Case Sensitive</Text>
-            <Text style={styles.optionDescription}>
+        <div style={styles.optionRow}>
+          <div>
+            <div style={styles.optionLabel}>Case Sensitive</div>
+            <div style={styles.optionDescription}>
               Require exact capitalization
-            </Text>
-          </View>
-          <Switch
-            value={caseSensitive}
-            onValueChange={setCaseSensitive}
-            trackColor={{ false: colors.border, true: colors.primary }}
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={caseSensitive}
+            onChange={(e) => setCaseSensitive(e.target.checked)}
+            style={styles.checkbox}
           />
-        </View>
+        </div>
 
-        <View style={styles.optionRow}>
-          <View>
-            <Text style={styles.optionLabel}>Exact Punctuation</Text>
-            <Text style={styles.optionDescription}>
+        <div style={styles.optionRow}>
+          <div>
+            <div style={styles.optionLabel}>Exact Punctuation</div>
+            <div style={styles.optionDescription}>
               Require hyphens, apostrophes, etc.
-            </Text>
-          </View>
-          <Switch
-            value={exactPunctuation}
-            onValueChange={setExactPunctuation}
-            trackColor={{ false: colors.border, true: colors.primary }}
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={exactPunctuation}
+            onChange={(e) => setExactPunctuation(e.target.checked)}
+            style={styles.checkbox}
           />
-        </View>
+        </div>
 
-        <TouchableOpacity
-          style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
-          onPress={handleSave}
+        <button
+          style={styles.saveButton}
+          onClick={handleSave}
           disabled={!canSave}
-          activeOpacity={0.8}>
-          <Text style={styles.saveButtonText}>
+        >
+          <div style={styles.saveButtonText}>
             {isEditing ? 'Save Changes' : 'Create Passage'}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          </div>
+        </button>
+      </div>
+    </div>
   );
 };
